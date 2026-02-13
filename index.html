@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Novel | For You</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #050505;
+            --accent: #d63031;
+            --panel: #111;
+        }
+
+        body {
+            background-color: var(--bg);
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: white;
+        }
+
+        /* 1. Kapak Ekranı */
+        #coverScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: all 0.8s ease;
+        }
+
+        .cover-wrapper {
+            width: 380px;
+            max-width: 80%;
+            cursor: pointer;
+            perspective: 1000px;
+        }
+
+        .cover-wrapper img {
+            width: 100%;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 20px rgba(214, 48, 49, 0.2);
+            border: 1px solid #333;
+            transition: transform 0.5s ease;
+        }
+
+        .cover-wrapper:hover img {
+            transform: rotateY(-10deg) scale(1.02);
+        }
+
+        .hint {
+            margin-top: 40px;
+            font-size: 0.8rem;
+            letter-spacing: 5px;
+            color: #666;
+            text-transform: uppercase;
+            animation: blink 2s infinite;
+        }
+
+        /* 2. Okuyucu Arayüzü */
+        #readerUI {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+            border-bottom: 1px solid #222;
+        }
+
+        .stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 2000px;
+            position: relative;
+        }
+
+        .comic-frame {
+            position: relative;
+            height: 82vh;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .comic-frame img {
+            height: 100%;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            border-left: 5px solid #000;
+        }
+
+        /* Sayfa Çevirme Efekti */
+        .flipping {
+            transform: rotateY(-100deg) translateX(-100px);
+            opacity: 0;
+        }
+
+        /* Kontrol Bölgeleri */
+        .nav-zone {
+            position: absolute;
+            width: 20%; height: 100%;
+            top: 0; z-index: 10;
+            cursor: pointer;
+        }
+        .left-z { left: 0; }
+        .right-z { right: 0; }
+
+        footer {
+            height: 70px;
+            background: var(--panel);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            border-top: 2px solid var(--accent);
+        }
+
+        #progBar {
+            width: 200px;
+            height: 3px;
+            background: #222;
+        }
+
+        #progInner {
+            height: 100%;
+            background: var(--accent);
+            width: 11%;
+            transition: 0.3s;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="coverScreen" onclick="initReader()">
+        <div class="cover-wrapper">
+            <img src="img/kapakfoto.png" alt="Kapak">
+        </div>
+        <div class="hint">BAŞLAMAK İÇİN TIKLA</div>
+    </div>
+
+    <div id="readerUI">
+        <header>
+            <div style="font-weight: bold; letter-spacing: 2px;">EPISODE <span style="color:var(--accent)">01</span></div>
+            <div id="pageText" style="font-size: 0.9rem; color: #888;">01 / 09</div>
+        </header>
+
+        <div class="stage">
+            <div class="nav-zone left-z" onclick="movePage(-1)"></div>
+            <div class="comic-frame" id="frame">
+                <img src="img/1.png" id="mainImg">
+            </div>
+            <div class="nav-zone right-z" onclick="movePage(1)"></div>
+        </div>
+
+        <footer>
+            <div id="progBar"><div id="progInner"></div></div>
+        </footer>
+    </div>
+
+    <audio id="sfxFlip" src="https://www.soundjay.com/misc/sounds/page-flip-01a.mp3"></audio>
+
+    <script>
+        let idx = 1;
+        const total = 9;
+        const sfx = document.getElementById('sfxFlip');
+
+        function initReader() {
+            sfx.play();
+            document.getElementById('coverScreen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('coverScreen').style.display = 'none';
+                document.getElementById('readerUI').style.display = 'flex';
+            }, 800);
+        }
+
+        function movePage(step) {
+            if (idx + step < 1 || idx + step > total) return;
+
+            sfx.currentTime = 0;
+            sfx.play();
+
+            const frame = document.getElementById('frame');
+            frame.classList.add('flipping');
+
+            setTimeout(() => {
+                idx += step;
+                // GÜNCELLENEN KISIM: Tek Nokta
+                document.getElementById('mainImg').src = `img/${idx}.png`;
+                document.getElementById('pageText').innerText = `${idx.toString().padStart(2, '0')} / 09`;
+                document.getElementById('progInner').style.width = (idx / total * 100) + "%";
+                
+                frame.classList.remove('flipping');
+            }, 300);
+        }
+
+        // Klavye
+        document.addEventListener('keydown', (e) => {
+            if(e.key === "ArrowRight") movePage(1);
+            if(e.key === "ArrowLeft") movePage(-1);
+        });
+    </script>
+</body>
+</html>
